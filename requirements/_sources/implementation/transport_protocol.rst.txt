@@ -568,24 +568,28 @@ Segment Storage
 
 .. requirement:: Detect Overlapping Segments
    :id: REQ_TP_037
-   :satisfies: feat_req_someiptp_780
+   :satisfies: feat_req_someiptp_780, feat_req_someiptp_797
    :status: implemented
    :priority: high
    :category: error_path
-   :verification: Unit test: Receive segment at offset 0 (100 bytes), then offset 50 (100 bytes), verify overlap is detected and logged.
+   :verification: Unit test: Receive segment at offset 0 (100 bytes), then offset 50 (100 bytes), verify overlap is detected and first-wins semantics applied (original bytes preserved, only new positions written).
 
    The software shall detect segments that partially overlap with
-   previously received segments.
+   previously received segments and apply first-wins semantics:
+   already-received bytes are preserved, only not-yet-received byte
+   positions are written from the new segment.
 
-   **Rationale**: Overlapping segments indicate protocol error.
+   **Rationale**: Overlapping segments may occur due to retransmission.
+   First-wins prevents mixed-payload corruption per
+   ``feat_req_someiptp_797``.
 
-   **Error Handling**: Log warning; discard new segment.
+   **Error Handling**: Log warning; apply first-wins copy (see ``REQ_TP_081_FW``).
 
    **Code Location**: ``src/tp/tp_reassembler.cpp``
 
 .. requirement:: Handle Out-of-Order Segments
    :id: REQ_TP_038
-   :satisfies: feat_req_someiptp_774, feat_req_someiptp_789, feat_req_someiptp_790
+   :satisfies: feat_req_someiptp_774, feat_req_someiptp_789, feat_req_someiptp_790, feat_req_someiptp_820
    :status: implemented
    :priority: high
    :category: happy_path
@@ -696,6 +700,27 @@ Reassembly Error Handling
 
    **Code Location**: ``src/tp/tp_reassembler.cpp``
 
+.. requirement:: Reject Misaligned Non-Final Segments
+   :id: REQ_TP_044
+   :satisfies: feat_req_someiptp_772, feat_req_someiptp_792
+   :status: implemented
+   :priority: high
+   :category: error_path
+   :verification: Unit test: Receive a non-final segment (More=1) with payload length not a multiple of 16 bytes, verify the segment is rejected. Receive a final segment (More=0) with non-aligned payload, verify it is accepted. Tests: ``tests/test_tp.cpp`` (MisalignedNonFinalSegmentRejected, MisalignedFinalSegmentAccepted).
+
+   The software shall reject any TP segment with More Segments = 1 whose
+   payload length is not a multiple of 16 bytes. The last segment (More
+   Segments = 0) may have any payload length.
+
+   **Rationale**: The offset field uses 16-byte units; non-aligned intermediate
+   segments would produce gaps or overlaps during reassembly. The spec
+   mandates this check (feat_req_someiptp_772 SHALL, feat_req_someiptp_792
+   SHALL).
+
+   **Error Handling**: Discard segment; return false from ``validate_segment``.
+
+   **Code Location**: ``src/tp/tp_reassembler.cpp`` (validate_segment)
+
 .. requirement:: Error - Total Length Inconsistency
    :id: REQ_TP_043
    :satisfies: feat_req_someiptp_774, feat_req_someiptp_792
@@ -712,6 +737,30 @@ Reassembly Error Handling
    **Error Handling**: Discard buffer; return MALFORMED_MESSAGE error.
 
    **Code Location**: ``src/tp/tp_reassembler.cpp``
+
+.. requirement:: Clamp Reassembly Size to Static Buffer Capacity
+   :id: REQ_TP_030_E03
+   :satisfies: feat_req_someiptp_782
+   :status: implemented
+   :priority: high
+   :category: error_path
+   :verification: Build with ``-DSOMEIP_USE_STATIC_ALLOC=ON``; verify ``max_message_size`` is clamped to ``SOMEIP_MAX_TP_REASSEMBLY_SIZE`` at reassembler construction time. A ``static_assert`` in ``tp_types.h`` guards against build-time misconfiguration. Tests: ``tests/test_tp.cpp`` (MaxTpReassemblySizeIsAtLeast16).
+
+   On static-allocation builds, the software shall clamp the effective
+   ``max_message_size`` to ``SOMEIP_MAX_TP_REASSEMBLY_SIZE`` at
+   reassembler construction and on configuration update. This prevents
+   transfers that exceed the compile-time buffer capacity from silently
+   failing.
+
+   **Rationale**: ``SOMEIP_MAX_TP_REASSEMBLY_SIZE`` defaults to 2048 on
+   RTOS targets but ``TpConfig::max_message_size`` defaults to 1 MB.
+   Without clamping, transfers > 2 KB silently fail on static builds
+   (feat_req_someiptp_782 SHOULD).
+
+   **Error Handling**: Clamp silently; no error raised (the configured size
+   is honoured, just reduced to fit).
+
+   **Code Location**: ``src/tp/tp_reassembler.cpp`` (constructor, update_config), ``include/tp/tp_types.h`` (static_assert)
 
 .. requirement:: Error - Maximum Concurrent Transfers
    :id: REQ_TP_030_E02
@@ -903,6 +952,14 @@ Timer Error Handling
 
 Statistics and Monitoring
 =========================
+
+Statistics counters use ``std::atomic<uint32_t>`` with relaxed memory
+ordering (``AtomicTpStatistics``) and are split into separate sender and
+receiver instances so that diagnostic reads via
+``get_sender_statistics()`` / ``get_receiver_statistics()`` are lock-free
+and race-free.  Reads (snapshots) use relaxed loads; writes use
+``fetch_add`` with relaxed ordering — the generated instructions and cost
+depend on the compiler and target.
 
 .. requirement:: Track Segmentation Statistics
    :id: REQ_TP_060
@@ -1136,18 +1193,61 @@ Receiver Behavior Extensions
 
 .. requirement:: Overlapping Segment Handling
    :id: REQ_TP_081
-   :satisfies: feat_req_someiptp_810, feat_req_someiptp_797, feat_req_someiptp_820
+   :satisfies: feat_req_someiptp_810, feat_req_someiptp_797
    :status: implemented
    :priority: medium
    :category: error_path
-   :verification: Unit test: Send segment at offset 0 (100 bytes), then send overlapping segment at offset 50 (100 bytes) with different data, verify reassembly is cancelled.
+   :verification: Unit test: Send segment at offset 0 (100 bytes), then send overlapping segment at offset 50 (100 bytes) with different data, verify first-wins semantics apply (original bytes preserved). Tests: ``tests/test_tp.cpp`` (OverlapDifferentDataFirstWins).
 
-   The receiver may cancel reassembly when overlapping or duplicated
-   segments change previously received bytes, if configurable.
+   The receiver shall apply first-wins semantics to overlapping TP
+   segments.  Cancel-on-conflict (``feat_req_someiptp_810``) is
+   permitted but not currently implemented; first-wins satisfies the
+   normative requirement since 810 uses MAY.
 
    **Rationale**: Detecting overlapping changes prevents silent data corruption.
 
    **Code Location**: ``src/tp/tp_reassembler.cpp`` (add_segment_to_buffer overlap detection)
+
+.. requirement:: First-Wins Semantics for Overlapping Segments
+   :id: REQ_TP_081_FW
+   :satisfies: feat_req_someiptp_797
+   :status: implemented
+   :priority: medium
+   :category: happy_path
+   :verification: Unit test: Send segment A at offset 0 (32 bytes 0xAA, more=1), then overlapping segment B at offset 16 (32 bytes 0xBB, more=0). Verify bytes [16..31] retain 0xAA (first-wins). Tests: ``tests/test_tp.cpp`` (OverlapSameDataSucceeds, OverlapDifferentDataFirstWins, ExactDuplicateAccepted).
+
+   The software shall implement first-wins semantics for overlapping TP
+   segments: when a newly received segment overlaps with bytes that were
+   already received, only the not-yet-received bytes are written to the
+   reassembly buffer.  Already-received bytes are preserved.
+
+   **Rationale**: Per ``feat_req_someiptp_797`` (SHOULD): "The receiver
+   should correctly reassemble overlapping and duplicated segments by
+   overwriting using the content of the first segment received."
+   First-wins prevents mixed-payload messages when a retransmitted
+   segment carries slightly different data.
+
+   **Code Location**: ``src/tp/tp_reassembler.cpp`` (add_segment_to_buffer, per-byte first-wins copy)
+
+.. requirement:: Atomic Header and Payload Completion
+   :id: REQ_TP_081_ATOM
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Unit test: Complete a reassembly and verify that the returned SOME/IP header matches the payload (not a stale header from a previous completion). Tests: ``tests/test_tp.cpp`` (HeaderMatchesPayloadAfterCompletion, ProcessSegmentReturnsHeader).
+
+   The software shall return the completed SOME/IP header alongside the
+   reassembled payload from ``process_segment()`` so that concurrent
+   ``ingest_datagram()`` calls cannot pair the wrong header with a
+   payload.
+
+   **Rationale**: ``last_completed_someip_header_`` is a shared member
+   variable that can be overwritten between ``process_segment()`` and
+   ``copy_last_completed_someip_header()`` during concurrent calls.
+   Bundling the header with the payload under the reassembly lock
+   eliminates the race condition.
+
+   **Code Location**: ``src/tp/tp_reassembler.cpp`` (process_segment), ``src/tp/tp_manager.cpp`` (ingest_datagram)
 
 
 TP Informational References
@@ -1277,6 +1377,47 @@ TP Informational References
 
    **Code Location**: ``src/tp/tp_reassembler.cpp``
 
+.. requirement:: UDP Send Uses TP Segmentation
+   :id: REQ_TP_090
+   :satisfies: feat_req_someiptp_760, feat_req_someiptp_765
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Integration test: A raw UDP peer counts datagrams. A 1400-byte request and a 1400-byte response are each one 1416-byte datagram with the TP flag clear. A payload whose serialized size is one byte past the budget is segmented, and non-final segment payloads are multiples of 16. Tests: ``tests/test_udp_transport.cpp`` (PayloadOf1400IsOneDatagram, PayloadPastDatagramBudgetIsSegmented, TpSegmentsAndReassemblesLargePayload, SmallMessageNotTpFlagged).
+
+   When ``UdpTransportConfig.enable_tp`` is true, UDP send shall segment
+   a message only when its serialized size, including the 16-byte SOME/IP
+   header, exceeds the single-datagram budget
+   (``UdpTransportConfig::max_message_size``, default 1416). Each TP
+   segment's payload is at most ``TpConfig.max_segment_size`` (default
+   1392) rounded down to a multiple of 16, plus the SOME/IP and TP
+   headers. A message that still fits shall be sent as one datagram
+   without the TP flag and without 16-byte padding. The static build
+   keeps ``enable_tp`` false until the caller sets it.
+
+   **Rationale**: Automatic TP on UDP avoids IP fragmentation and exposes a single Message API.
+
+   **Code Location**: ``src/transport/udp_transport.cpp`` (``send_message``, ``send_tp_segments``)
+
+.. requirement:: UDP Receive Reassembles TP Datagrams
+   :id: REQ_TP_091
+   :satisfies: feat_req_someiptp_774, feat_req_someiptp_785
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Unit test: ``TpManager::ingest_datagram`` completes when total length is unknown until the last segment. Integration: UDP loopback reassembly with TP flag cleared. Tests: ``tests/test_tp.cpp`` (WireIngestUnknownTotalUntilLast), ``tests/test_udp_transport.cpp``.
+
+   When ``enable_tp`` is true, UDP receive shall treat datagrams with
+   Message Type bit 5 set as TP segments, reassemble them without
+   requiring a total-size field (grow the buffer; last segment with
+   More=0 finalizes the length), and deliver one Message with the TP
+   flag cleared. Incomplete transfers shall not be delivered.
+   ``TpManager::process_timeouts()`` shall run on the receive loop.
+
+   **Rationale**: The wire TP header has no total message length; reassembly must wait for More=0.
+
+   **Code Location**: ``src/transport/udp_transport.cpp`` (``receive_loop``), ``src/tp/tp_manager.cpp`` (``ingest_datagram``), ``src/tp/tp_reassembler.cpp``
+
 Traceability
 ============
 
@@ -1290,8 +1431,12 @@ Implementation Files
 * ``src/tp/tp_manager.cpp`` - TP manager implementation
 * ``src/tp/tp_segmenter.cpp`` - Segmenter implementation
 * ``src/tp/tp_reassembler.cpp`` - Reassembler implementation
+* ``src/transport/udp_transport.cpp`` - UDP send/receive TP integration
+* ``include/transport/udp_transport.h`` - ``enable_tp`` and ``TpConfig``
 
 Test Files
 ----------
 
 * ``tests/test_tp.cpp`` - TP unit tests
+* ``tests/test_udp_transport.cpp`` - UDP loopback TP integration
+* ``tests/integration/test_tp_udp_integration.py`` - wire-format TP tests

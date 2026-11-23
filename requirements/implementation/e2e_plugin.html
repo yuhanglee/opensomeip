@@ -11,13 +11,12 @@
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-data-viewer/jsonview.bundle.css?v=f6ef2277" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/libs/html/datatables.min.css?v=4b4fd840" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/need_core.css?v=f5b60a78" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/needstable.css?v=5e1b6797" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/need_links.css?v=2150a916" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/need_style.css?v=92936fa5" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/modern.css?v=803738c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/common_css/needstable.css?v=7b67799e" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-needs/modern.css?v=c1bc121d" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=d5a60f39" />
     <script src="../_static/jquery.js?v=5d32c60e"></script>
     <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
@@ -26,8 +25,6 @@
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/sphinx-data-viewer/jsonview.bundle.js?v=18cd53c5"></script>
     <script src="../_static/sphinx-data-viewer/jsonview_loader.js?v=f7ff7e7d"></script>
-    <script src="../_static/sphinx-needs/libs/html/datatables.min.js?v=8a4aee21"></script>
-    <script src="../_static/sphinx-needs/libs/html/datatables_loader.js?v=a2cae175"></script>
     <script src="../_static/sphinx-needs/libs/html/sphinx_needs_collapse.js?v=dca66431"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -69,7 +66,7 @@ the core implementation.</p>
 <h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h2>
 <section id="plugin-interface">
 <h3>Plugin Interface<a class="headerlink" href="#plugin-interface" title="Link to this heading">¶</a></h3>
-<div class="need_container docutils container" id="SNCB-224e1796">
+<div class="need_container docutils container" id="SNCB-78647a50">
 <table class="need needs_grid_simple needs_layout_clean needs_style_none needs_type_requirement docutils align-default" id="REQ_E2E_PLUGIN_001">
 <tbody>
 <tr class="need head row-odd"><td class="need head"><div class="needs_head line-block">
@@ -106,7 +103,7 @@ external libraries without modifying the core implementation.</p>
 </section>
 <section id="profile-registry">
 <h3>Profile Registry<a class="headerlink" href="#profile-registry" title="Link to this heading">¶</a></h3>
-<div class="need_container docutils container" id="SNCB-42053a53">
+<div class="need_container docutils container" id="SNCB-0471e805">
 <table class="need needs_grid_simple needs_layout_clean needs_style_none needs_type_requirement docutils align-default" id="REQ_E2E_PLUGIN_002">
 <tbody>
 <tr class="need head row-odd"><td class="need head"><div class="needs_head line-block">
@@ -143,7 +140,7 @@ runtime selection and configuration.</p>
 </section>
 <section id="plugin-registration-api">
 <h3>Plugin Registration API<a class="headerlink" href="#plugin-registration-api" title="Link to this heading">¶</a></h3>
-<div class="need_container docutils container" id="SNCB-3bc5a3c7">
+<div class="need_container docutils container" id="SNCB-c306ad22">
 <table class="need needs_grid_simple needs_layout_clean needs_style_none needs_type_requirement docutils align-default" id="REQ_E2E_PLUGIN_003">
 <tbody>
 <tr class="need head row-odd"><td class="need head"><div class="needs_head line-block">
@@ -179,7 +176,7 @@ profile plugins.</p>
 </section>
 <section id="standard-profile">
 <h3>Standard Profile<a class="headerlink" href="#standard-profile" title="Link to this heading">¶</a></h3>
-<div class="need_container docutils container" id="SNCB-f146695b">
+<div class="need_container docutils container" id="SNCB-70c0a5fe">
 <table class="need needs_grid_simple needs_layout_clean needs_style_none needs_type_requirement docutils align-default" id="REQ_E2E_PLUGIN_004">
 <tbody>
 <tr class="need head row-odd"><td class="need head"><div class="needs_head line-block">
@@ -217,7 +214,7 @@ AUTOSAR profiles.</p>
 </section>
 <section id="e2e-header-format">
 <h3>E2E Header Format<a class="headerlink" href="#e2e-header-format" title="Link to this heading">¶</a></h3>
-<div class="need_container docutils container" id="SNCB-747c2c7a">
+<div class="need_container docutils container" id="SNCB-367e9bd2">
 <table class="need needs_grid_simple needs_layout_clean needs_style_none needs_type_requirement docutils align-default" id="REQ_E2E_PLUGIN_005">
 <tbody>
 <tr class="need head row-odd"><td class="need head"><div class="needs_head line-block">
@@ -234,10 +231,40 @@ AUTOSAR profiles.</p>
 </div>
 </td>
 </tr>
-<tr class="need content row-odd"><td class="need content" colspan="1"><p>The E2E header shall be inserted after the Return Code field in the
-SOME/IP header, with its position determined by the configured offset
-value (default: 64 bits = 8 bytes).</p>
-<p>The standard E2E header format shall be:</p>
+<tr class="need content row-odd"><td class="need content" colspan="1"><p><code class="docutils literal notranslate"><span class="pre">E2EConfig::offset_bits</span></code> is the spec Offset, measured in bits from the
+start of the Length-covered region (Request ID). The default is 64 bits,
+which places the header immediately after Return Code (wire byte 16).</p>
+<p>A byte-aligned Offset greater than 64 is supported. The header starts at
+wire byte <code class="docutils literal notranslate"><span class="pre">8</span> <span class="pre">+</span> <span class="pre">offset_bits/8</span></code>. Bytes between Return Code and that index
+are an unprotected prefix: they are stored apart from <code class="docutils literal notranslate"><span class="pre">Message::get_payload()</span></code>,
+they are not covered by the basic-profile CRC, and they are included in
+the Length field together with the E2E header and the application payload
+(feat_req_someip_77). The caller supplies the prefix with
+<code class="docutils literal notranslate"><span class="pre">Message::set_e2e_unprotected_prefix</span></code> before <code class="docutils literal notranslate"><span class="pre">protect</span></code>. Deserialize
+takes the Offset and header size from <code class="docutils literal notranslate"><span class="pre">E2EParseOptions</span></code> (configuration).
+<code class="docutils literal notranslate"><span class="pre">expect_e2e</span> <span class="pre">==</span> <span class="pre">true</span></code> selects only the default layout. The receiver does
+not discover Offset or header size from the datagram.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Message</span></code> stores profile bytes in a fixed buffer of
+<code class="docutils literal notranslate"><span class="pre">SOMEIP_MAX_E2E_HEADER_SIZE</span></code> (default 64). The 12-byte <code class="docutils literal notranslate"><span class="pre">E2EHeader</span></code>
+view is available only when the stored size is 12. Plugins may return any
+other size up to that cap. <code class="docutils literal notranslate"><span class="pre">SOMEIP_MAX_E2E_PREFIX_SIZE</span></code> (default 64)
+caps the unprotected prefix. Both caps are part of
+<code class="docutils literal notranslate"><span class="pre">SOMEIP_MAX_MESSAGE_SIZE</span></code>.</p>
+<p>Error codes, evaluated in this order:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Result::NOT_INITIALIZED</span></code> when no profile is registered</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Result::INVALID_ARGUMENT</span></code> when <code class="docutils literal notranslate"><span class="pre">offset_bits</span> <span class="pre">&lt;</span> <span class="pre">64</span></code> (overlaps the
+SOME/IP header) or <code class="docutils literal notranslate"><span class="pre">offset_bits</span></code> is not a multiple of 8, and for CRC,
+Data ID, replay, and other caller errors</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Result::NOT_IMPLEMENTED</span></code> when the prefix or the profile header
+exceeds its compile-time cap</p></li>
+</ul>
+<p>SOME/IP-TP and the default E2E layout both occupy wire byte 16. A message
+that already has an E2E header is not segmented, at any supported Offset
+or header size. Reassembly completes before E2E parse. The C ABI
+(<code class="docutils literal notranslate"><span class="pre">opensomeip_e2e_protect</span></code> / <code class="docutils literal notranslate"><span class="pre">opensomeip_e2e_check</span></code>) stays on the
+default layout and has no Offset field.</p>
+<p>The basic profile header format shall be:</p>
 <ul class="simple">
 <li><p>CRC: 32 bits</p></li>
 <li><p>Counter: 32 bits</p></li>
@@ -245,9 +272,59 @@ value (default: 64 bits = 8 bytes).</p>
 <li><p>Freshness Value: 16 bits</p></li>
 <li><p>Total: 12 bytes (96 bits)</p></li>
 </ul>
-<p><strong>Rationale</strong>: Complies with SOME/IP specification feat_req_someip_102
-and feat_req_someip_103.</p>
-<p><strong>Code Location</strong>: <code class="docutils literal notranslate"><span class="pre">include/e2e/e2e_header.h</span></code></p>
+<p><strong>Rationale</strong>: feat_req_someip_102 places the header by Offset (default
+64 bits). feat_req_someip_103 allows the header size to depend on the
+profile. Bit packing and headers or prefixes above the static caps stay
+unrepresentable.</p>
+<p><strong>Code Location</strong>: <code class="docutils literal notranslate"><span class="pre">include/e2e/e2e_header.h</span></code>, <code class="docutils literal notranslate"><span class="pre">include/e2e/e2e_layout.h</span></code>,
+<code class="docutils literal notranslate"><span class="pre">src/e2e/e2e_protection.cpp</span></code>, <code class="docutils literal notranslate"><span class="pre">src/someip/message.cpp</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="receive-policy">
+<h3>Receive Policy<a class="headerlink" href="#receive-policy" title="Link to this heading">¶</a></h3>
+<div class="need_container docutils container" id="SNCB-9572dc19">
+<table class="need needs_grid_simple needs_layout_clean needs_style_none needs_type_requirement docutils align-default" id="REQ_E2E_RECEIVE_001">
+<tbody>
+<tr class="need head row-odd"><td class="need head"><div class="needs_head line-block">
+<div class="line"><span><span class="needs_type_name"><span class="needs_data">Requirement</span></span>: </span><strong><span><span class="needs_title"><span class="needs_data">E2E receive validation policy</span></span></span></strong><span> <span class="needs-id"><a class="reference internal" href="#REQ_E2E_RECEIVE_001" title="REQ_E2E_RECEIVE_001">REQ_E2E_RECEIVE_001</a></span>  <span class="needs needs_collapse" id="target__show__meta"><span class="needs collapsed"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-down-circle"><circle cx="12" cy="12" r="10"></circle><polyline points="8 12 12 16 16 12"></polyline><line x1="12" y1="8" x2="12" y2="16"></line></svg></span><span class="needs visible collapse_is_hidden"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-right-circle"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg></span></span> </span></div>
+</div>
+</td>
+</tr>
+<tr class="need meta row-even"><td class="need meta"><div class="needs_meta line-block">
+<div class="line"><span><span><div class="line"><span class="needs_status"><span class="needs_label">status: </span><span class="needs_data">implemented</span></span></div>
+<div class="line"><span class="needs_priority"><span class="needs_label">priority: </span><span class="needs_data">high</span></span></div>
+</span></span></div>
+<div class="line"><span></span></div>
+</div>
+</td>
+</tr>
+<tr class="need content row-odd"><td class="need content" colspan="1"><p>A transport config may bind a Service ID and Method/Event ID to an E2E
+receive policy. Bindings are fixed-capacity. Adding past the cap returns
+<code class="docutils literal notranslate"><span class="pre">Result::RESOURCE_EXHAUSTED</span></code> and is not an <code class="docutils literal notranslate"><span class="pre">on_message_rejected</span></code> event.
+Configure the table before the transport starts; the receive loop only
+reads it.</p>
+<p>When a binding matches a complete frame (after TP reassembly, never on a
+TP segment), the transport deserializes the default layout so the 12-byte
+header is not application payload. Non-default Offset and non-12-byte
+headers are outside this receive path.</p>
+<ul class="simple">
+<li><p>Stack-managed: <code class="docutils literal notranslate"><span class="pre">E2EProtection::validate</span></code> runs before the application
+handler. Failure is reported with <code class="docutils literal notranslate"><span class="pre">MessageRejectionStage::E2E_INTEGRITY</span></code>
+and the handler is not called.</p></li>
+<li><p>Application-managed: the handler receives the clean payload and
+<code class="docutils literal notranslate"><span class="pre">Message::get_e2e_header()</span></code>. The application validates. CRC, Data ID,
+and replay failures stay <code class="docutils literal notranslate"><span class="pre">Result::INVALID_ARGUMENT</span></code>.</p></li>
+</ul>
+<p>A profile id of 0 registers the basic profile if it is not already
+registered. A missing custom profile fails stack-managed validation with
+<code class="docutils literal notranslate"><span class="pre">Result::NOT_INITIALIZED</span></code>.</p>
+<p><strong>Rationale</strong>: Receive paths cannot guess E2E presence from the datagram.
+The application names the protected methods and who checks them.</p>
+<p><strong>Code Location</strong>: <code class="docutils literal notranslate"><span class="pre">include/e2e/e2e_receive_policy.h</span></code>, <code class="docutils literal notranslate"><span class="pre">src/e2e/e2e_receive.cpp</span></code></p>
 </td>
 </tr>
 </tbody>
@@ -268,6 +345,8 @@ and feat_req_someip_103.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">src/e2e/e2e_profile_registry.cpp</span></code> - Registry implementation</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">src/e2e/e2e_protection.cpp</span></code> - Protection implementation</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">src/e2e/e2e_profiles/standard_profile.cpp</span></code> - Standard profile</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include/e2e/e2e_receive_policy.h</span></code> - Receive bindings and policy</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">src/e2e/e2e_receive.cpp</span></code> - Default-layout receive check</p></li>
 </ul>
 </section>
 <section id="test-files">
@@ -332,6 +411,7 @@ and feat_req_someip_103.</p>
 <li class="toctree-l1"><a class="reference internal" href="transport_protocol.html">Transport Protocol Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platform.html">Platform Abstraction Requirements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="compatibility.html">Compatibility and Migration Requirements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="c_api.html">C API Requirements</a></li>
 </ul>
 
 <div class="relations">

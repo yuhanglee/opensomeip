@@ -223,7 +223,10 @@ Length Field Parsing
    total SOME/IP message size minus 8 bytes (Message ID + Length fields).
 
    **Rationale**: Length field covers Request ID, Protocol Version,
-   Interface Version, Message Type, Return Code, and payload.
+   Interface Version, Message Type, Return Code, and everything after
+   Return Code. When E2E is present that includes the unprotected prefix
+   (Offset greater than 64 bits), the profile header, and the application
+   payload.
 
    **Code Location**: ``src/someip/message.cpp``
 
@@ -605,10 +608,14 @@ Interface Version Parsing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify Interface Version is passed to application layer for validation.
+   :verification: Unit test: Verify Interface Version 0x02 (service major) is passed through the header; RPC/application validates per service.
 
-   The software shall pass the Interface Version value to the application
-   layer for service-specific version validation.
+   The Interface Version field is the service major version. For non-SD
+   messages the stack shall pass the Interface Version through the SOME/IP
+   header without rejecting values other than 0x01; application and RPC
+   layers validate the value per service (see REQ_MSG_042). SD messages
+   (service 0xFFFF / method 0x8100) are validated at the header layer and
+   must carry ``SOMEIP_SD_INTERFACE_VERSION`` (0x01).
 
    **Rationale**: Interface version compatibility is application-specific.
 
@@ -620,16 +627,18 @@ Interface Version Parsing
    :status: implemented
    :priority: medium
    :category: error_path
-   :verification: Unit test: Verify E_WRONG_INTERFACE_VERSION is returned when application rejects version.
+   :verification: Unit test: Verify RpcServer returns E_WRONG_INTERFACE_VERSION (0x08) when the request Interface Version does not match the offered service major.
 
-   The software shall return error code E_WRONG_INTERFACE_VERSION (0x08)
-   when the application rejects the Interface Version.
+   The RPC server shall return error code E_WRONG_INTERFACE_VERSION (0x08)
+   when the request Interface Version does not match the offered service
+   major version. The header layer does not drop the message for a
+   non-0x01 Interface Version.
 
    **Rationale**: Standard error code for interface version mismatch.
 
    **Error Handling**: Set return code to 0x08 in error response.
 
-   **Code Location**: ``src/someip/message.cpp``
+   **Code Location**: ``src/rpc/rpc_server.cpp``
 
 .. requirement:: Error - Log Interface Version Mismatch
    :id: REQ_MSG_042_E01
@@ -746,14 +755,17 @@ Message Type Parsing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Deserialize message with type=0x20, verify TP flag (bit 5) is set. Verify message is routed to TP reassembler.
+   :verification: Unit test: Deserialize messages with type 0x20, 0xA0, and 0xA1, verify TP flag (bit 5) is set via ``uses_tp()``. Verify 0xA0/0xA1 are accepted (not unknown). Tests: ``tests/test_message.cpp`` (TpFlaggedResponseAndErrorAccepted), ``tests/test_tp.cpp`` (TpFlagBitIncludesResponseAndError).
 
    The software shall detect the TP flag (bit 5, value 0x20) in the
    Message Type field to identify SOME/IP-TP segmented messages.
+   Detection shall be a bitwise test ``(type & 0x20) != 0``, so that
+   TP-flagged Response (0xA0) and Error (0xA1) are recognized as well
+   as 0x20/0x21/0x22.
 
    **Rationale**: TP flag indicates the message is a segment of a larger message.
 
-   **Code Location**: ``src/someip/message.cpp``
+   **Code Location**: ``src/someip/types.cpp`` (``uses_tp``), ``src/someip/message.cpp``
 
 .. requirement:: Accept REQUEST_ACK Message Type
    :id: REQ_MSG_057
@@ -806,12 +818,12 @@ Message Type Parsing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify Message Type 0x20 (TP_REQUEST) is accepted.
+   :verification: Unit test: Verify Message Type 0x20 (REQUEST with TP flag) is accepted.
 
-   The software shall accept Message Type 0x20 (TP_REQUEST) for
-   segmented request messages.
+   The software shall accept Message Type 0x20, which is REQUEST (0x00)
+   with the TP flag (bit 5) set, for segmented request messages.
 
-   **Rationale**: TP variant of REQUEST message type.
+   **Rationale**: TP-flagged REQUEST, not a distinct message class.
 
    **Code Location**: ``src/someip/message.cpp``
 
@@ -821,12 +833,12 @@ Message Type Parsing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify Message Type 0x21 (TP_REQUEST_NO_RETURN) is accepted.
+   :verification: Unit test: Verify Message Type 0x21 (REQUEST_NO_RETURN with TP flag) is accepted.
 
-   The software shall accept Message Type 0x21 (TP_REQUEST_NO_RETURN) for
-   segmented fire-and-forget messages.
+   The software shall accept Message Type 0x21, which is REQUEST_NO_RETURN
+   (0x01) with the TP flag set, for segmented fire-and-forget messages.
 
-   **Rationale**: TP variant of REQUEST_NO_RETURN message type.
+   **Rationale**: TP-flagged REQUEST_NO_RETURN.
 
    **Code Location**: ``src/someip/message.cpp``
 
@@ -836,14 +848,30 @@ Message Type Parsing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify Message Type 0x22 (TP_NOTIFICATION) is accepted.
+   :verification: Unit test: Verify Message Type 0x22 (NOTIFICATION with TP flag) is accepted.
 
-   The software shall accept Message Type 0x22 (TP_NOTIFICATION) for
-   segmented notification messages.
+   The software shall accept Message Type 0x22, which is NOTIFICATION
+   (0x02) with the TP flag set, for segmented notification messages.
 
-   **Rationale**: TP variant of NOTIFICATION message type.
+   **Rationale**: TP-flagged NOTIFICATION.
 
    **Code Location**: ``src/someip/message.cpp``
+
+.. requirement:: Accept TP-flagged RESPONSE Message Type
+   :id: REQ_MSG_060_TP_RESPONSE
+   :satisfies: feat_req_someip_761, feat_req_someiptp_765
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Unit test: Deserialize type 0xA0 (RESPONSE|TP) and 0xA1 (ERROR|TP); verify acceptance and ``uses_tp()``. Tests: ``tests/test_message.cpp``, ``tests/test_tp.cpp``.
+
+   The software shall accept Message Type 0xA0 (RESPONSE with TP flag)
+   and 0xA1 (ERROR with TP flag) for segmented response and error
+   messages. After reassembly the TP flag shall be cleared (0x80 / 0x81).
+
+   **Rationale**: TP is a flag on the base message type, including Response and Error.
+
+   **Code Location**: ``src/someip/message.cpp``, ``src/someip/types.cpp``
 
 .. requirement:: Error - Reject Unknown Message Type
    :id: REQ_MSG_063
@@ -851,10 +879,13 @@ Message Type Parsing
    :status: implemented
    :priority: high
    :category: error_path
-   :verification: Unit test: Deserialize message with type=0x50, verify E_WRONG_MESSAGE_TYPE (0x0A) is returned. Test all undefined type values.
+   :verification: Unit test: Deserialize message with type=0x50, verify rejection. Test type=0xFF. Verify type=0xA0 is NOT treated as unknown (bit 5 masked first). Tests: ``tests/test_message.cpp`` (TpFlaggedResponseAndErrorAccepted, Validation).
 
-   The software shall reject messages with Message Type values not
-   defined in the SOME/IP specification.
+   The software shall reject messages whose Message Type, after masking
+   TP flag bit 5 (``type & ~0x20``), is not one of the defined base types
+   (REQUEST, REQUEST_NO_RETURN, NOTIFICATION, REQUEST_ACK, RESPONSE,
+   ERROR, RESPONSE_ACK, ERROR_ACK). 0xA0 (RESPONSE|TP) and 0xA1 (ERROR|TP)
+   are valid, not unknown.
 
    **Rationale**: Unknown message types cannot be processed correctly.
 
@@ -1493,17 +1524,23 @@ Event and Field Support
 .. requirement:: Selective Event Sending
    :id: REQ_MSG_122
    :satisfies: feat_req_someip_804, feat_req_someip_806
-   :status: implemented
+   :status: pending
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Set event filter on subscriber to accept only eventgroup_id=0x01, publish events for groups 0x01 and 0x02, verify subscriber receives only 0x01.
+   :verification: Pending: demonstrate application-controlled selection of recipients and verify excluded clients receive no notification.
 
    The software should support sending events to a subset of subscribed
    clients, controlled by the application.
 
    **Rationale**: Selective sending reduces bandwidth when not all subscribers need every event.
 
-   **Code Location**: ``src/events/event_subscriber.cpp`` (set_event_filters), ``include/events/event_types.h`` (EventFilter)
+   **Implementation limitation**: ``EventFilter`` metadata is stored but not
+   evaluated during delivery; ``set_event_filters`` is not evidence of selective
+   sending. Each ``EventSubscriber`` accepts only one instance/eventgroup key per
+   service because notifications do not carry instance/eventgroup identity.
+   Admission tests in ``tests/test_subscriber_dispatch.cpp`` cover that restriction,
+   not selective sending. Supporting multiple keys requires an explicit receive
+   binding/membership design; optional filters alone cannot provide it.
 
 .. requirement:: Field Getter Support
    :id: REQ_MSG_123
@@ -1518,7 +1555,7 @@ Event and Field Support
 
    **Rationale**: Field getters allow clients to read current field values on demand.
 
-   **Code Location**: ``src/events/event_subscriber.cpp`` (request_field), ``include/events/event_subscriber.h``
+   **Code Location**: ``src/events/event_subscriber.cpp`` (request_field), ``src/events/event_publisher.cpp`` (getter response)
 
 .. requirement:: Field Setter Support
    :id: REQ_MSG_124
@@ -1534,7 +1571,7 @@ Event and Field Support
 
    **Rationale**: Field setters allow clients to update field values with server-side validation.
 
-   **Code Location**: ``src/events/event_publisher.cpp`` (publish_field), ``include/events/event_publisher.h``
+   **Code Location**: ``src/events/event_subscriber.cpp`` (set_field), ``src/events/event_publisher.cpp`` (setter response)
 
 .. requirement:: Field Notifier Support
    :id: REQ_MSG_125
@@ -1564,7 +1601,7 @@ Event and Field Support
 
    **Rationale**: A field without any accessor serves no purpose and indicates a design error.
 
-   **Code Location**: ``include/events/event_publisher.h``
+   **Code Location**: ``src/events/event_publisher.cpp`` (register_event)
 
 
 Error Handling Extensions
@@ -1790,6 +1827,43 @@ Header Informational References
 
    **Code Location**: ``src/events/event_publisher.cpp``, ``src/sd/sd_client.cpp``
 
+.. requirement:: Structured Deserialize Outcome
+   :id: REQ_MSG_150
+   :status: implemented
+   :priority: high
+   :category: error_path
+   :verification: Unit test: ``try_deserialize`` distinguishes truncated buffers, length mismatch, invalid protocol version, invalid SD interface version, invalid message type, unknown return code, missing E2E layout, invalid Service/Method ID, and oversized payload. ``deserialize`` remains a bool wrapper.
+
+   ``Message::try_deserialize`` shall return a structured ``someip::Result``
+   identifying the semantic rejection class. ``Message::deserialize`` shall
+   remain a source-compatible ``bool`` wrapper. Failures shall use local
+   ``Result`` values, not on-wire ``ReturnCode``. Header fields parsed
+   before the failure shall remain available on the ``Message`` object.
+
+   **Rationale**: Receive-path diagnostics need distinguishable parse
+   failures without collapsing every check to ``false``.
+
+   **Code Location**: ``include/someip/message.h``, ``src/someip/message.cpp``
+
+.. requirement:: Non-owning Payload View
+   :id: REQ_MSG_151
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Unit test: ``test_message.cpp`` — TC_PAYLOADVIEW_001 through TC_PAYLOADVIEW_005. A view of a four-byte payload reports that size, the first and last bytes, and the same data pointer as ``get_payload()``. An empty payload yields an empty view. ``subview(1, 3)`` returns three bytes starting at the second. ``subview(3, 10)`` on a five-byte payload returns the two bytes that remain. Range-for visits each byte. ``test_static_alloc_integration.cpp`` — TC_STATIC_INT_PAYLOADVIEW reads the view under a malloc trap.
+
+   ``Message::payload_view()`` shall return a non-owning view of the message
+   payload. The view shall expose the payload bytes and their size, return a
+   sub-range clipped to the payload, and iterate those bytes without copying
+   them or allocating memory.
+
+   **Rationale**: Callers need to read a payload in place on both the
+   heap-backed and the static-allocation message buffers. No specification
+   sentence defines this view.
+
+   **Code Location**: ``include/someip/payload_view.h``,
+   ``include/someip/message.h`` (``payload_view``)
+
 
 .. requirement:: Error - Invalid Service Instance ID
    :id: REQ_MSG_110_E01
@@ -1924,7 +1998,7 @@ Header Informational References
 
    **Error Handling**: Return E_UNKNOWN_METHOD in error response.
 
-   **Code Location**: ``src/events/event_subscriber.cpp``
+   **Code Location**: ``src/events/event_publisher.cpp`` (unknown getter or setter method)
 
 .. requirement:: Error - Field Setter Validation Failure
    :id: REQ_MSG_124_E01
@@ -2072,10 +2146,12 @@ Implementation Files
 * ``include/someip/message.h`` - Message class definition
 * ``include/someip/types.h`` - Type definitions
 * ``src/someip/message.cpp`` - Message implementation
-* ``src/someip/types.cpp`` - Type implementations
+* ``src/someip/types.cpp`` - Type implementations (``uses_tp`` bit test)
 * ``src/core/session_manager.cpp`` - Session ID management
 
 Test Files
 ----------
 
 * ``tests/test_message.cpp`` - Message unit tests
+* ``tests/test_tp.cpp`` - TP-flagged 0xA0/0xA1 and reassembly tests
+* ``tests/integration/test_tp_udp_integration.py`` - wire TP type tests

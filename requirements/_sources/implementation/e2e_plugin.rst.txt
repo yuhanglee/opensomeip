@@ -140,11 +140,44 @@ E2E Header Format
    :priority: high
    :verification: Code inspection of header structure and execution of message serialization tests with E2E headers.
 
-   The E2E header shall be inserted after the Return Code field in the
-   SOME/IP header, with its position determined by the configured offset
-   value (default: 64 bits = 8 bytes).
+   ``E2EConfig::offset_bits`` is the spec Offset, measured in bits from the
+   start of the Length-covered region (Request ID). The default is 64 bits,
+   which places the header immediately after Return Code (wire byte 16).
 
-   The standard E2E header format shall be:
+   A byte-aligned Offset greater than 64 is supported. The header starts at
+   wire byte ``8 + offset_bits/8``. Bytes between Return Code and that index
+   are an unprotected prefix: they are stored apart from ``Message::get_payload()``,
+   they are not covered by the basic-profile CRC, and they are included in
+   the Length field together with the E2E header and the application payload
+   (feat_req_someip_77). The caller supplies the prefix with
+   ``Message::set_e2e_unprotected_prefix`` before ``protect``. Deserialize
+   takes the Offset and header size from ``E2EParseOptions`` (configuration).
+   ``expect_e2e == true`` selects only the default layout. The receiver does
+   not discover Offset or header size from the datagram.
+
+   ``Message`` stores profile bytes in a fixed buffer of
+   ``SOMEIP_MAX_E2E_HEADER_SIZE`` (default 64). The 12-byte ``E2EHeader``
+   view is available only when the stored size is 12. Plugins may return any
+   other size up to that cap. ``SOMEIP_MAX_E2E_PREFIX_SIZE`` (default 64)
+   caps the unprotected prefix. Both caps are part of
+   ``SOMEIP_MAX_MESSAGE_SIZE``.
+
+   Error codes, evaluated in this order:
+
+   * ``Result::NOT_INITIALIZED`` when no profile is registered
+   * ``Result::INVALID_ARGUMENT`` when ``offset_bits < 64`` (overlaps the
+     SOME/IP header) or ``offset_bits`` is not a multiple of 8, and for CRC,
+     Data ID, replay, and other caller errors
+   * ``Result::NOT_IMPLEMENTED`` when the prefix or the profile header
+     exceeds its compile-time cap
+
+   SOME/IP-TP and the default E2E layout both occupy wire byte 16. A message
+   that already has an E2E header is not segmented, at any supported Offset
+   or header size. Reassembly completes before E2E parse. The C ABI
+   (``opensomeip_e2e_protect`` / ``opensomeip_e2e_check``) stays on the
+   default layout and has no Offset field.
+
+   The basic profile header format shall be:
 
    * CRC: 32 bits
    * Counter: 32 bits
@@ -152,10 +185,49 @@ E2E Header Format
    * Freshness Value: 16 bits
    * Total: 12 bytes (96 bits)
 
-   **Rationale**: Complies with SOME/IP specification feat_req_someip_102
-   and feat_req_someip_103.
+   **Rationale**: feat_req_someip_102 places the header by Offset (default
+   64 bits). feat_req_someip_103 allows the header size to depend on the
+   profile. Bit packing and headers or prefixes above the static caps stay
+   unrepresentable.
 
-   **Code Location**: ``include/e2e/e2e_header.h``
+   **Code Location**: ``include/e2e/e2e_header.h``, ``include/e2e/e2e_layout.h``,
+   ``src/e2e/e2e_protection.cpp``, ``src/someip/message.cpp``
+
+Receive Policy
+--------------
+
+.. requirement:: E2E receive validation policy
+   :id: REQ_E2E_RECEIVE_001
+   :status: implemented
+   :priority: high
+   :verification: UDP and TCP tests for stack-managed rejection and application-managed metadata. The default layout is Offset 64 bits and a 12-byte header.
+
+   A transport config may bind a Service ID and Method/Event ID to an E2E
+   receive policy. Bindings are fixed-capacity. Adding past the cap returns
+   ``Result::RESOURCE_EXHAUSTED`` and is not an ``on_message_rejected`` event.
+   Configure the table before the transport starts; the receive loop only
+   reads it.
+
+   When a binding matches a complete frame (after TP reassembly, never on a
+   TP segment), the transport deserializes the default layout so the 12-byte
+   header is not application payload. Non-default Offset and non-12-byte
+   headers are outside this receive path.
+
+   * Stack-managed: ``E2EProtection::validate`` runs before the application
+     handler. Failure is reported with ``MessageRejectionStage::E2E_INTEGRITY``
+     and the handler is not called.
+   * Application-managed: the handler receives the clean payload and
+     ``Message::get_e2e_header()``. The application validates. CRC, Data ID,
+     and replay failures stay ``Result::INVALID_ARGUMENT``.
+
+   A profile id of 0 registers the basic profile if it is not already
+   registered. A missing custom profile fails stack-managed validation with
+   ``Result::NOT_INITIALIZED``.
+
+   **Rationale**: Receive paths cannot guess E2E presence from the datagram.
+   The application names the protected methods and who checks them.
+
+   **Code Location**: ``include/e2e/e2e_receive_policy.h``, ``src/e2e/e2e_receive.cpp``
 
 Traceability
 ============
@@ -171,6 +243,8 @@ Implementation Files
 * ``src/e2e/e2e_profile_registry.cpp`` - Registry implementation
 * ``src/e2e/e2e_protection.cpp`` - Protection implementation
 * ``src/e2e/e2e_profiles/standard_profile.cpp`` - Standard profile
+* ``include/e2e/e2e_receive_policy.h`` - Receive bindings and policy
+* ``src/e2e/e2e_receive.cpp`` - Default-layout receive check
 
 Test Files
 ----------

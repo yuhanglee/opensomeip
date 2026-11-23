@@ -1,57 +1,90 @@
 # ASPICE Traceability Gap Analysis Report
 
-Generated: 2026-04-18 21:18:35
+Generated: 2026-11-23 00:53:30
 
 ## Summary
 
-- **Total Requirements**: 649
-- **Fully Traced (impl + tests)**: 585 (90.1%)
-- **Missing Implementation**: 62
-- **Missing Tests**: 2
-- **Missing Spec Links (all)**: 153
-- **Missing Spec Links (required only)**: 1
+- **Total Requirements**: 703
+- **Fully Traced (impl + tests)**: 650 (92.5%)
+- **Missing Implementation**: 53
+- **Missing Tests**: 1
+- **Missing Spec Links (all)**: 162
+- **Missing Spec Links (required only)**: 2
 
 ### Requirement Categories
 
 | Category | Total | Implemented | Tested | Spec Linked |
 |----------|-------|-------------|--------|-------------|
-| Architectural (derived) | 7 | 7 (100%) | 7 (100%) | 2 (29%) |
-| Error Handling (derived) | 151 | 130 (86%) | 149 (99%) | 6 (4%) |
-| Message Header | 91 | 86 (95%) | 91 (100%) | 91 (100%) |
-| Other | 61 | 54 (89%) | 61 (100%) | 60 (98%) |
+| Architectural (derived) | 8 | 8 (100%) | 8 (100%) | 3 (38%) |
+| Error Handling (derived) | 156 | 135 (87%) | 156 (100%) | 10 (6%) |
+| Message Header | 94 | 89 (95%) | 94 (100%) | 92 (98%) |
+| Other | 93 | 92 (99%) | 92 (99%) | 89 (96%) |
 | Plugin (derived) | 5 | 5 (100%) | 5 (100%) | 3 (60%) |
-| Serialization | 75 | 52 (69%) | 75 (100%) | 75 (100%) |
-| Service Discovery | 170 | 166 (98%) | 170 (100%) | 170 (100%) |
-| Transport Layer | 29 | 27 (93%) | 29 (100%) | 29 (100%) |
-| Transport Protocol | 60 | 60 (100%) | 60 (100%) | 60 (100%) |
+| Serialization | 75 | 53 (71%) | 75 (100%) | 75 (100%) |
+| Service Discovery | 173 | 170 (98%) | 173 (100%) | 173 (100%) |
+| Transport Layer | 34 | 33 (97%) | 34 (100%) | 32 (94%) |
+| Transport Protocol | 65 | 65 (100%) | 65 (100%) | 64 (98%) |
 
 
-**Note**: Error handling, architectural, and plugin requirements are implementation-derived and
-may not require direct spec links.
+**Note**: Implementation-derived requirements may omit direct spec links. The exemption
+matches `validate_requirements.py`: an ID containing `_E0`, `_ARCH_`, `PLUGIN`, or `MY_`;
+an ID starting with `REQ_CAPI_` or `REQ_PAL_`; an ID ending with `_ATOM`; or one of
+`REQ_E2E_RECEIVE_001`, `REQ_TRANSPORT_030`, `REQ_MSG_151` (local API contracts with no spec ID).
+`REQ_MSG_150` and `REQ_TRANSPORT_026` stay known-unlinked and are not exemptions.
 
-- **Spec-Derived Requirements**: 486
-- **Implementation-Derived Requirements**: 163
+- **Spec-Derived Requirements**: 474
+- **Implementation-Derived Requirements**: 229
 
 ### Priority Breakdown
 
 | Priority | Total | Implemented | Tested | Coverage |
 |----------|-------|-------------|--------|----------|
 | Critical | 32 | 32 | 32 | 100% |
-| High | 55 | 55 | 55 | 100% |
-| Medium | 387 | 346 | 387 | 89% |
-| Low | 175 | 154 | 173 | 88% |
+| High | 56 | 56 | 56 | 100% |
+| Medium | 431 | 399 | 430 | 93% |
+| Low | 184 | 163 | 184 | 89% |
 
 ### Test Coverage Breakdown
 
 | Test Type | Count |
 |-----------|-------|
-| Unit Tests | 191 |
-| Integration Tests | 9 |
+| Unit Tests | 641 |
+| Integration Tests | 22 |
 | System Tests | 6 |
+
+### Specification requirements reached by integration or system tests
+
+Counts `feat_req_*` IDs cited by a software requirement `:satisfies:` field.
+The class comes from `classify_test_type` on tests of those software
+requirements. Specification IDs with no software requirement stay in
+`check_spec_requirements.py`.
+
+| Reach | Count |
+|-------|-------|
+| Linked specification IDs | 745 |
+| Reached by an integration test | 43 |
+| Reached by a system test | 26 |
+| Reached by integration or system | 50 |
+| Reached only by unit tests | 695 |
+| Linked, with no test | 0 |
 
 ## Gaps Requiring Attention
 
 ### Requirements Without Implementation
+- REQ_TRANSPORT_015
+- REQ_MSG_132B
+- REQ_MSG_133A
+- REQ_MSG_133B
+- REQ_MSG_135
+- REQ_MSG_140
+- REQ_MSG_113_E01
+- REQ_CAPI_006
+- REQ_SD_125
+- REQ_SD_126
+- REQ_SD_170
+- REQ_SD_222_E01
+- REQ_SD_134_E01
+- REQ_SD_113_E01
 - REQ_SER_022_E01
 - REQ_SER_046_E01
 - REQ_SER_047_E02
@@ -63,7 +96,6 @@ may not require direct spec links.
 - REQ_SER_070
 - REQ_SER_070_E01
 - REQ_SER_070_E02
-- REQ_SER_074
 - REQ_SER_090
 - REQ_SER_091
 - REQ_SER_092
@@ -92,41 +124,139 @@ may not require direct spec links.
 - REQ_SER_034_E01
 - REQ_SER_056_E01
 - REQ_SER_073_E01
-- REQ_MSG_132B
-- REQ_MSG_133A
-- REQ_MSG_133B
-- REQ_MSG_135
-- REQ_MSG_140
-- REQ_MSG_113_E01
-- REQ_SD_125
-- REQ_SD_126
-- REQ_SD_170
-- REQ_SD_171
-- REQ_SD_222_E01
-- REQ_SD_134_E01
-- REQ_SD_113_E01
-- REQ_PLATFORM_LWIP_002
-- REQ_PLATFORM_ZEPHYR_003
-- REQ_PLATFORM_ZEPHYR_004
-- REQ_PLATFORM_WIN32_001
-- REQ_PLATFORM_WIN32_002
-- REQ_PLATFORM_WIN32_003
-- REQ_PLATFORM_WIN32_004
-- REQ_TRANSPORT_013
-- REQ_TRANSPORT_015
 
 ### Requirements Without Test Coverage
-- REQ_PAL_MEM_EXHAUST_E01
-- REQ_PAL_MEM_THREADSAFE_E01
+- REQ_CAPI_006
 
 ### Implementation Requirements Without Spec Links (Required)
 These requirements should have spec links but don't:
 
-- REQ_PLATFORM_ARCH_001
+- REQ_TRANSPORT_026
+- REQ_MSG_150
 
 ### Implementation-Derived Requirements Without Spec Links (Expected)
-These are derived requirements (error handling, architectural, plugin) that don't need spec links:
+These requirements match the implementation-derived exemption and do not need spec links:
 
+- REQ_ARCH_002
+- REQ_ARCH_003
+- REQ_ARCH_004
+- REQ_ARCH_006
+- REQ_ARCH_007
+- REQ_TRANSPORT_001_E01
+- REQ_TRANSPORT_001_E02
+- REQ_TRANSPORT_002_E01
+- REQ_TRANSPORT_002_E02
+- REQ_TRANSPORT_011_E01
+- REQ_TRANSPORT_011_E03
+- REQ_TRANSPORT_014_E01
+- REQ_TRANSPORT_016_E01
+- REQ_TRANSPORT_002_E03
+- REQ_TRANSPORT_001_E03
+- REQ_TRANSPORT_006_E01
+- REQ_TRANSPORT_003_E01
+- REQ_TRANSPORT_002_E04
+- REQ_TRANSPORT_011_E02
+- REQ_TRANSPORT_030
+- REQ_PLATFORM_ARCH_001
+- REQ_PAL_MUTEX_UNLOCK_E01
+- REQ_PAL_CV_EXCEPT_E01
+- REQ_PAL_THREAD_CREATE_E01
+- REQ_PAL_THREAD_DTOR_E01
+- REQ_PAL_MEM_EXHAUST_E01
+- REQ_PAL_MEM_THREADSAFE_E01
+- REQ_PAL_NET_MODE_E01
+- REQ_MSG_004_E02
+- REQ_MSG_012_E01
+- REQ_MSG_012_E02
+- REQ_MSG_014_E01
+- REQ_MSG_014_E02
+- REQ_MSG_024_E01
+- REQ_MSG_024_E02
+- REQ_MSG_032_E01
+- REQ_MSG_032_E02
+- REQ_MSG_042_E01
+- REQ_MSG_063_E01
+- REQ_MSG_063_E02
+- REQ_MSG_072_E01
+- REQ_MSG_071_E02
+- REQ_MSG_100_E01
+- REQ_MSG_100_E02
+- REQ_MSG_100_E03
+- REQ_MSG_151
+- REQ_MSG_110_E01
+- REQ_MSG_113_E01
+- REQ_MSG_114_E01
+- REQ_MSG_114_E02
+- REQ_MSG_117_E01
+- REQ_MSG_118_E01
+- REQ_MSG_120_E01
+- REQ_MSG_121_E01
+- REQ_MSG_123_E01
+- REQ_MSG_124_E01
+- REQ_MSG_040_E01
+- REQ_MSG_020_E01
+- REQ_MSG_010_E01
+- REQ_MSG_090_E01
+- REQ_MSG_125_E01
+- REQ_MSG_054_E01
+- REQ_MSG_053_E01
+- REQ_MSG_121_E02
+- REQ_E2E_PLUGIN_002
+- REQ_E2E_PLUGIN_003
+- REQ_E2E_RECEIVE_001
+- REQ_TP_001_E01
+- REQ_TP_001_E02
+- REQ_TP_001_E03
+- REQ_TP_013_E01
+- REQ_TP_015_E01
+- REQ_TP_039_E01
+- REQ_TP_030_E01
+- REQ_TP_030_E02
+- REQ_TP_050_E01
+- REQ_TP_050_E02
+- REQ_TP_081_ATOM
+- REQ_TP_072_E01
+- REQ_TP_076_E01
+- REQ_TP_082_E01
+- REQ_TP_082_E02
+- REQ_TP_082_E03
+- REQ_TP_082_E04
+- REQ_TP_076_E02
+- REQ_CAPI_004
+- REQ_CAPI_005
+- REQ_SD_001_E01
+- REQ_SD_010_E01
+- REQ_SD_021_E01
+- REQ_SD_022_E01
+- REQ_SD_020_E01
+- REQ_SD_020_E02
+- REQ_SD_041_E01
+- REQ_SD_040_E01
+- REQ_SD_052_E01
+- REQ_SD_050_E01
+- REQ_SD_061_E01
+- REQ_SD_062_E01
+- REQ_SD_060_E01
+- REQ_SD_064_E01
+- REQ_SD_075_E01
+- REQ_SD_001_E02
+- REQ_SD_120_E01
+- REQ_SD_119_E01
+- REQ_SD_222_E01
+- REQ_SD_116_E01
+- REQ_SD_115_E01
+- REQ_SD_115_E02
+- REQ_SD_134_E01
+- REQ_SD_030_E01
+- REQ_SD_080_E01
+- REQ_SD_070_E01
+- REQ_SD_010_E02
+- REQ_SD_060_E02
+- REQ_SD_044_E01
+- REQ_SD_083_E01
+- REQ_SD_113_E01
+- REQ_SD_116_E02
+- REQ_SD_123_E01
 - REQ_SER_001_E01
 - REQ_SER_002_E01
 - REQ_SER_003_E01
@@ -167,125 +297,13 @@ These are derived requirements (error handling, architectural, plugin) that don'
 - REQ_SER_040_E02
 - REQ_SER_073_E01
 - REQ_SER_080_E02
-- REQ_E2E_PLUGIN_002
-- REQ_E2E_PLUGIN_003
-- REQ_MSG_004_E02
-- REQ_MSG_012_E01
-- REQ_MSG_012_E02
-- REQ_MSG_014_E01
-- REQ_MSG_014_E02
-- REQ_MSG_024_E01
-- REQ_MSG_024_E02
-- REQ_MSG_032_E01
-- REQ_MSG_032_E02
-- REQ_MSG_042_E01
-- REQ_MSG_063_E01
-- REQ_MSG_063_E02
-- REQ_MSG_072_E01
-- REQ_MSG_071_E02
-- REQ_MSG_100_E01
-- REQ_MSG_100_E02
-- REQ_MSG_100_E03
-- REQ_MSG_110_E01
-- REQ_MSG_113_E01
-- REQ_MSG_114_E01
-- REQ_MSG_114_E02
-- REQ_MSG_117_E01
-- REQ_MSG_118_E01
-- REQ_MSG_120_E01
-- REQ_MSG_121_E01
-- REQ_MSG_123_E01
-- REQ_MSG_124_E01
-- REQ_MSG_040_E01
-- REQ_MSG_020_E01
-- REQ_MSG_010_E01
-- REQ_MSG_090_E01
-- REQ_MSG_125_E01
-- REQ_MSG_054_E01
-- REQ_MSG_053_E01
-- REQ_MSG_121_E02
-- REQ_SD_001_E01
-- REQ_SD_010_E01
-- REQ_SD_021_E01
-- REQ_SD_022_E01
-- REQ_SD_020_E01
-- REQ_SD_020_E02
-- REQ_SD_041_E01
-- REQ_SD_040_E01
-- REQ_SD_052_E01
-- REQ_SD_050_E01
-- REQ_SD_061_E01
-- REQ_SD_062_E01
-- REQ_SD_060_E01
-- REQ_SD_064_E01
-- REQ_SD_075_E01
-- REQ_SD_001_E02
-- REQ_SD_120_E01
-- REQ_SD_119_E01
-- REQ_SD_222_E01
-- REQ_SD_116_E01
-- REQ_SD_115_E01
-- REQ_SD_115_E02
-- REQ_SD_134_E01
-- REQ_SD_030_E01
-- REQ_SD_080_E01
-- REQ_SD_070_E01
-- REQ_SD_010_E02
-- REQ_SD_060_E02
-- REQ_SD_044_E01
-- REQ_SD_083_E01
-- REQ_SD_113_E01
-- REQ_SD_116_E02
-- REQ_SD_123_E01
-- REQ_TP_001_E01
-- REQ_TP_001_E02
-- REQ_TP_001_E03
-- REQ_TP_013_E01
-- REQ_TP_015_E01
-- REQ_TP_039_E01
-- REQ_TP_030_E01
-- REQ_TP_030_E02
-- REQ_TP_050_E01
-- REQ_TP_050_E02
-- REQ_TP_072_E01
-- REQ_TP_076_E01
-- REQ_TP_082_E01
-- REQ_TP_082_E02
-- REQ_TP_082_E03
-- REQ_TP_082_E04
-- REQ_TP_076_E02
-- REQ_ARCH_002
-- REQ_ARCH_003
-- REQ_ARCH_004
-- REQ_ARCH_006
-- REQ_ARCH_007
-- REQ_PAL_MUTEX_UNLOCK_E01
-- REQ_PAL_CV_EXCEPT_E01
-- REQ_PAL_THREAD_CREATE_E01
-- REQ_PAL_THREAD_DTOR_E01
-- REQ_PAL_MEM_EXHAUST_E01
-- REQ_PAL_MEM_THREADSAFE_E01
-- REQ_PAL_NET_MODE_E01
-- REQ_TRANSPORT_001_E01
-- REQ_TRANSPORT_001_E02
-- REQ_TRANSPORT_002_E01
-- REQ_TRANSPORT_002_E02
-- REQ_TRANSPORT_011_E01
-- REQ_TRANSPORT_014_E01
-- REQ_TRANSPORT_016_E01
-- REQ_TRANSPORT_002_E03
-- REQ_TRANSPORT_001_E03
-- REQ_TRANSPORT_006_E01
-- REQ_TRANSPORT_003_E01
-- REQ_TRANSPORT_002_E04
-- REQ_TRANSPORT_011_E02
 
 ## ASPICE Compliance Assessment
 
 ### SWE.1 (Software Requirements Analysis)
 - **Status**: ⚠️ PARTIAL - Some spec-derived requirements missing links
 - **Details**: Spec-derived requirements must satisfy at least one specification requirement
-- **Derived Requirements**: 163 implementation-derived requirements do not require spec links
+- **Derived Requirements**: 229 implementation-derived requirements do not require spec links
 
 ### SWE.3 (Software Architectural Design)
 - **Status**: ❌ FAIL - Missing implementations
@@ -298,7 +316,7 @@ These are derived requirements (error handling, architectural, plugin) that don'
 ### Overall Compliance Level
 - **Current Level**: CL1
 - **Target for Production**: CL2 (100% traceability)
-- **Gap to Target**: 64 requirements
+- **Gap to Target**: 53 requirements
 
 ## Recommendations
 

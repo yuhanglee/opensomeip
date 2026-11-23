@@ -920,63 +920,64 @@ IPv6 Endpoint Option
 
 .. requirement:: Parse IPv6 Endpoint Option Type
    :id: REQ_SD_067
-   :satisfies: feat_req_someipsd_1112
+   :satisfies: feat_req_someipsd_140
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify Option Type 0x06 is parsed as IPv6 Endpoint.
+   :verification: Unit test: Serialize/deserialize Option Type 0x06 as IPv6 Endpoint. Covered by IPv6EndpointOptionRoundTrip and SdMessagePreservesIPv6Options.
 
    The software shall recognize Option Type 0x06 as an IPv6 Endpoint
-   option.
+   option and keep it in the parsed option list (not skip it as unknown).
 
    **Rationale**: IPv6 Endpoint provides service endpoint information.
 
-   **Code Location**: ``src/sd/sd_message.cpp``
+   **Code Location**: ``include/sd/sd_message.h`` (``IPv6EndpointOption``), ``src/sd/sd_message.cpp``
 
 .. requirement:: Extract IPv6 Address
    :id: REQ_SD_068
-   :satisfies: feat_req_someipsd_1112
+   :satisfies: feat_req_someipsd_163, feat_req_someipsd_164
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify IPv6 address is extracted from bytes 4-19 of option.
+   :verification: Unit test: Verify IPv6 address is extracted from bytes 4-19 of the option. Covered by IPv6EndpointOptionRoundTrip.
 
    The software shall extract the IPv6 address from bytes 4-19 of the
-   IPv6 Endpoint option (16 bytes).
+   IPv6 Endpoint option (16 bytes), measured from the start of the option
+   (Length field).
 
    **Rationale**: IPv6 address is needed for service communication.
 
-   **Code Location**: ``src/sd/sd_message.cpp``
+   **Code Location**: ``src/sd/sd_message.cpp`` (``IPv6EndpointOption::deserialize``)
 
 .. requirement:: Extract IPv6 Port Number
    :id: REQ_SD_069
-   :satisfies: feat_req_someipsd_1112
+   :satisfies: feat_req_someipsd_163, feat_req_someipsd_164
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify port number is extracted from bytes 21-22 of IPv6 option.
+   :verification: Unit test: Verify port is extracted from bytes 22-23 of the IPv6 option. Covered by IPv6EndpointOptionRoundTrip.
 
-   The software shall extract the port number from bytes 21-22 of the
-   IPv6 Endpoint option in Big Endian byte order.
+   The software shall extract the port number from bytes 22-23 of the
+   IPv6 Endpoint option (relative to option start) in Big Endian order.
 
    **Rationale**: Port number is needed for service communication.
 
-   **Code Location**: ``src/sd/sd_message.cpp``
+   **Code Location**: ``src/sd/sd_message.cpp`` (``IPv6EndpointOption::deserialize``)
 
 .. requirement:: Extract IPv6 Protocol
    :id: REQ_SD_070
-   :satisfies: feat_req_someipsd_1112
+   :satisfies: feat_req_someipsd_163, feat_req_someipsd_164
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Client calls find_service(0x1234), verify FindService entry is sent with Service ID=0x1234 via multicast.
+   :verification: Unit test: Verify L4 protocol is extracted from byte 21 of the IPv6 option. Covered by IPv6EndpointOptionRoundTrip.
 
-   The software shall extract the L4 protocol from byte 20 of the IPv6
-   Endpoint option (UDP=0x11, TCP=0x06).
+   The software shall extract the L4 protocol from byte 21 of the IPv6
+   Endpoint option (relative to option start; UDP=0x11, TCP=0x06).
 
    **Rationale**: Protocol type determines transport layer.
 
-   **Code Location**: ``src/sd/sd_message.cpp``
+   **Code Location**: ``src/sd/sd_message.cpp`` (``IPv6EndpointOption::deserialize``)
 
 Configuration Option
 --------------------
@@ -1031,18 +1032,18 @@ Multicast Endpoint Options
 
 .. requirement:: Parse IPv6 Multicast Option Type
    :id: REQ_SD_074
-   :satisfies: feat_req_someipsd_1112
+   :satisfies: feat_req_someipsd_737
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Verify Option Type 0x16 is parsed as IPv6 Multicast.
+   :verification: Unit test: Verify Option Type 0x16 is parsed as IPv6 Multicast. Covered by IPv6MulticastOptionRoundTrip.
 
    The software shall recognize Option Type 0x16 as an IPv6 Multicast
-   Endpoint option.
+   Endpoint option and keep it in the parsed option list.
 
    **Rationale**: Multicast endpoint for event distribution.
 
-   **Code Location**: ``src/sd/sd_message.cpp``
+   **Code Location**: ``include/sd/sd_message.h`` (``IPv6MulticastOption``), ``src/sd/sd_message.cpp``
 
 Option Index References
 -----------------------
@@ -1547,15 +1548,15 @@ SD Entry Processing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Parse SD message with 3 entries (Find, Offer, Subscribe), verify each is dispatched to correct handler.
+   :verification: Integration test: Client sends SubscribeEventgroup, receives SubscribeEventgroupAck (Type 7, TTL>0), and activates the subscription (state SUBSCRIBED). Covered by ClientProcessesSubscribeAck.
 
    The software shall process SubscribeEventgroupAck entries (Type 7
    with TTL>0) by activating event reception for the subscribed
    eventgroup.
 
-   **Rationale**: Entry type dispatch enables parallel processing of mixed SD messages.
+   **Rationale**: The client must not treat an eventgroup as subscribed until the server acknowledges the request.
 
-   **Code Location**: ``src/sd/sd_server.cpp`` (process_sd_entries, entry type dispatch)
+   **Code Location**: ``src/sd/sd_client.cpp`` (process_sd_entries, handle_subscribe_ack_nack)
 
 .. requirement:: SubscribeEventgroupNack Processing
    :id: REQ_SD_120
@@ -1563,14 +1564,14 @@ SD Entry Processing
    :status: implemented
    :priority: high
    :category: happy_path
-   :verification: Unit test: Serialize IPv4EndpointOption with IP=10.0.0.1 port=30001, deserialize, verify round-trip accuracy.
+   :verification: Integration test: Client sends SubscribeEventgroup for an eventgroup the server does not offer, receives SubscribeEventgroupNack (Type 7, TTL=0), and marks the subscription REJECTED. Covered by ClientProcessesSubscribeNack.
 
    The software shall process SubscribeEventgroupNack entries (Type 7
    with TTL=0) by marking the subscription as rejected.
 
-   **Rationale**: Options provide flexible endpoint and configuration metadata.
+   **Rationale**: Nack tells the client the subscription was not accepted so it can stop waiting for events.
 
-   **Code Location**: ``src/sd/sd_message.cpp`` (SdOption, IPv4EndpointOption, IPv4MulticastOption)
+   **Code Location**: ``src/sd/sd_client.cpp`` (process_sd_entries, handle_subscribe_ack_nack)
 
 
 SD Option Handling
@@ -1597,14 +1598,16 @@ SD Option Handling
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Serialize IPv4EndpointOption (type=0x04) with address/port, verify 12-byte output with correct type code.
+   :verification: Unit test: Serialize IPv4SdEndpointOption (type=0x24) with address 192.0.2.10 port 40000 protocol UDP, verify Length 0x0009 and type 0x24, then deserialize. Covered by IPv4SdEndpointOptionRoundTrip.
 
    The software shall support the IPv4 SD Endpoint Option (Type 0x24)
-   for specifying the SD communication endpoint.
+   for specifying the SD communication endpoint (IPv4 address, L4 protocol,
+   and port). This is distinct from the IPv4 Endpoint Option (Type 0x04)
+   used for application and event traffic.
 
-   **Rationale**: IPv4 endpoint options carry the transport address for service communication.
+   **Rationale**: The SD endpoint tells peers where to send SD replies and which channel to use for reboot detection.
 
-   **Code Location**: ``src/sd/sd_message.cpp`` (IPv4EndpointOption::serialize/deserialize)
+   **Code Location**: ``include/sd/sd_message.h`` (IPv4SdEndpointOption)
 
 .. requirement:: IPv6 SD Endpoint Option
    :id: REQ_SD_123
@@ -2173,18 +2176,21 @@ SD Option Format Details
 
 .. requirement:: SD IPv6 Endpoint Option Format
    :id: REQ_SD_233
-   :satisfies: feat_req_someipsd_203, feat_req_someipsd_204
+   :satisfies: feat_req_someipsd_140, feat_req_someipsd_163, feat_req_someipsd_164
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Serialize IPv6EndpointOption with valid IPv6 address and port, verify type=0x06 and 16-byte address field.
+   :verification: Unit test: Serialize IPv6EndpointOption with a 16-byte address and port, verify type=0x06 and Length=0x0015. Covered by IPv6EndpointOptionRoundTrip.
 
    The software shall parse IPv6 Endpoint Options (Type 0x06) containing
    IPv6 address (16 bytes), reserved byte, protocol, and port number.
 
+   End-to-end ``AF_INET6`` transport and IPv6 SD Endpoint Option Type
+   ``0x26`` are out of scope for this requirement.
+
    **Rationale**: IPv6 support enables SD in IPv6 networks.
 
-   **Code Location**: ``src/sd/sd_server.cpp`` (handle_eventgroup_subscription, acknowledge=true/false)
+   **Code Location**: ``src/sd/sd_message.cpp`` (``IPv6EndpointOption``)
 
 .. requirement:: SD IPv4 Multicast Option Format
    :id: REQ_SD_234
@@ -2207,30 +2213,32 @@ SD Option Format Details
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Serialize IPv6MulticastOption with valid multicast IPv6 address, verify type=0x16 and 16-byte address field.
+   :verification: Unit test: Serialize IPv6MulticastOption, verify type=0x16 and Length=0x0015. Covered by IPv6MulticastOptionRoundTrip.
 
    The software shall parse IPv6 Multicast Options (Type 0x16) containing
    multicast IPv6 address, protocol (UDP only), and port number.
 
    **Rationale**: IPv6 multicast support enables SD in IPv6 networks.
 
-   **Code Location**: ``src/sd/sd_server.cpp`` (process_sd_entries, entry type dispatch)
+   **Code Location**: ``src/sd/sd_message.cpp`` (``IPv6MulticastOption``)
 
 .. requirement:: SD IPv4 SD Endpoint Option Format
    :id: REQ_SD_236
-   :satisfies: feat_req_someipsd_1080, feat_req_someipsd_1082, feat_req_someipsd_1083, feat_req_someipsd_1084, feat_req_someipsd_1087
+   :satisfies: feat_req_someipsd_1080, feat_req_someipsd_1082, feat_req_someipsd_1083, feat_req_someipsd_1085, feat_req_someipsd_1087
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Serialize IPv4 SD EndpointOption (type=0x24), verify it is not referenced by entries.
+   :verification: Unit test: Round-trip type 0x24 Length 0x0009; reject Length other than 0x0009 and a truncated option. Covered by IPv4SdEndpointOptionRoundTrip, IPv4SdEndpointOptionRejectsMalformedLength, and IPv4SdEndpointOptionRejectsTruncation.
 
-   The software shall parse IPv4 SD Endpoint Options (Type 0x24)
-   containing the SD communication endpoint. This option is not
-   referenced by entries.
+   The software shall parse IPv4 SD Endpoint Options (Type 0x24, Length
+   0x0009) containing the unicast IPv4 address, L4 protocol, and port of
+   the sender's SD implementation. A malformed length or a truncated
+   option shall reject the SD message. IPv6 SD Endpoint Option Type
+   0x26 is out of scope.
 
    **Rationale**: SD endpoint option carries the SD communication endpoint independently of entries.
 
-   **Code Location**: ``src/sd/sd_message.cpp`` (SdOption, IPv4EndpointOption, IPv4MulticastOption)
+   **Code Location**: ``src/sd/sd_message.cpp`` (IPv4 SD Endpoint parse), ``include/sd/sd_message.h`` (IPv4SdEndpointOption)
 
 
 SD Option Referencing Details
@@ -2379,15 +2387,15 @@ SD SubscribeEventgroup Message Details
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Server receives FindService from unknown client, verify it responds without authentication checks (open access).
+   :verification: Unit/integration test: After OfferService is received, client constructs SubscribeEventgroup with Service ID, Instance ID, Eventgroup ID, TTL, and a client IPv4EndpointOption, and sends it to the offering ECU SD unicast address. Covered by SubscribeSentToUnicastNotMulticast.
 
    The software shall construct SubscribeEventgroup messages with Service
    ID, Instance ID, Eventgroup ID, TTL, and client Endpoint Options.
    Subscriptions shall be triggered by OfferService reception.
 
-   **Rationale**: Open access simplifies deployment without per-client authorization at SD level.
+   **Rationale**: SubscribeEventgroup tells the offering ECU which eventgroup the client wants and where to send events.
 
-   **Code Location**: ``src/sd/sd_server.cpp``, ``src/sd/sd_client.cpp``
+   **Code Location**: ``src/sd/sd_client.cpp`` (subscribe_eventgroup)
 
 .. requirement:: SD Subscription Lifecycle
    :id: REQ_SD_271
@@ -2655,19 +2663,85 @@ SD Shutdown and Recovery
 
 .. requirement:: SD Graceful Shutdown
    :id: REQ_SD_310
-   :satisfies: feat_req_someipsd_818, feat_req_someipsd_819, feat_req_someipsd_822, feat_req_someipsd_823, feat_req_someipsd_824
+   :satisfies: feat_req_someipsd_819, feat_req_someipsd_822, feat_req_someipsd_823, feat_req_someipsd_824
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Configure reserved eventgroup handling, attempt subscription to reserved ID, verify rejection.
+   :verification: Unit test: Server shutdown sends StopOfferService for offered services; client shutdown sends StopSubscribe for active subscriptions.
 
    The software shall implement graceful shutdown by sending
    StopOfferService for all offered services and StopSubscribe
    for all active subscriptions.
 
-   **Rationale**: Mandatory features define the minimum required SD implementation.
+   **Rationale**: Peers must learn immediately that offered services and subscriptions are going away.
 
-   **Code Location**: ``include/sd/sd_types.h``, ``src/sd/sd_message.cpp``
+   **Code Location**: ``src/sd/sd_server.cpp`` (shutdown, send_stop_offer_messages), ``src/sd/sd_client.cpp`` (shutdown)
+
+.. requirement:: Subscribe Family Unicast Transport
+   :id: REQ_SD_818
+   :satisfies: feat_req_someipsd_818
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Integration test: After an Offer is received, SubscribeEventgroup is sent to the Offer datagram source (unicast IP and SD port), not the SD multicast group. Multicast Subscribe is ignored by the server when destination detection is available. Covered by SubscribeSentToUnicastNotMulticast and MulticastSubscribeDoesNotProduceAck.
+
+   SubscribeEventgroup, StopSubscribeEventgroup, SubscribeEventgroupAck,
+   and SubscribeEventgroupNack shall be transported by unicast only.
+
+   **Rationale**: Subscribe family messages are peer-to-peer and must not be flooded on the SD multicast group.
+
+   **Code Location**: ``src/sd/sd_client.cpp`` (subscribe_eventgroup, unsubscribe_eventgroup), ``src/sd/sd_server.cpp`` (process_sd_entries multicast filter)
+
+.. requirement:: Subscribe IPv4 UDP and TCP Endpoints
+   :id: REQ_SD_848
+   :satisfies: feat_req_someipsd_848
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Integration test: SubscribeEventgroup with one UDP and one TCP IPv4EndpointOption is ACKed; two UDP options are NACKed. Covered by SubscribeAcceptsUdpAndTcpEndpoints and SubscribeRejectsDuplicateUdpEndpoints.
+
+   A SubscribeEventgroup entry may reference one IPv4 Endpoint Option per
+   L4 protocol (one UDP and/or one TCP). True duplicates (two UDP or two
+   TCP endpoints) shall be rejected with SubscribeEventgroupNack.
+
+   **Rationale**: The client signals the UDP and/or TCP ports on which it is
+   ready to receive events.
+
+   **Code Location**: ``src/sd/sd_server.cpp`` (handle_eventgroup_subscription_request)
+
+.. requirement:: Subscribe Ack/NAck Reply Address
+   :id: REQ_SD_1084
+   :satisfies: feat_req_someipsd_1084
+   :status: implemented
+   :priority: high
+   :category: happy_path
+   :verification: Integration test: with no IPv4 SD Endpoint Option, SubscribeEventgroupAck is received on the datagram source socket and not on the event endpoint. When a usable Type 0x24 option names a different endpoint, Find responses, SubscribeEventgroup, and SubscribeEventgroupAck/Nack use that endpoint, and reboot detection follows it. A multicast 0x24 does not replace the source. Two offers in one datagram update the reboot channel once. Multicast and unicast reception keep separate session observations, and a reboot releases the endpoint index after replay. Covered by SubscribeAckGoesToSdSenderNotEventEndpoint, FindOfferUsesIpv4SdEndpoint, SubscribeAckUsesIpv4SdEndpointNotEventEndpoint, RebootAndSubscribeFollowIpv4SdEndpoint, IPv4SdEndpointRejectsMulticastAddress, BundledOffersDoNotFalseReboot, MulticastAndUnicastSessionsStayIndependent, and RebootReleasesEndpointIndexAfterReplay.
+
+   SubscribeEventgroupAck and SubscribeEventgroupNack shall be sent to the
+   source IP address and source port of the received SD datagram, not to
+   the IPv4 Endpoint Option used for event delivery.
+
+   If a usable IPv4 SD Endpoint Option (Type 0x24) is the first option, that
+   endpoint replaces the datagram source for SD replies (OfferService after
+   FindService, SubscribeEventgroup after OfferService, and
+   SubscribeEventgroupAck/Nack after SubscribeEventgroup) and for reboot
+   detection. The application/event endpoint is unchanged. When the option
+   is absent, not first, or not a usable UDP unicast endpoint, the datagram
+   source is used.
+
+   Reboot detection on that endpoint keeps a separate session observation
+   for datagrams received by multicast and for datagrams received by
+   unicast. A session transition on one stream is not a reboot of the
+   other. When the stack cannot report the datagram destination, both
+   streams share the unicast observation. After subscriptions are replayed,
+   the cached endpoint index for each cleared service is released so a
+   later offer can be addressed.
+
+   **Rationale**: The endpoint option address is for event delivery; SD
+   replies must reach the SD protocol peer, which may advertise a different
+   SD socket than the datagram source.
+
+   **Code Location**: ``src/sd/sd_server.cpp`` (process_sd_entries, send_subscribe_response), ``src/sd/sd_client.cpp`` (handle_service_offer)
 
 .. requirement:: SD Reboot Recovery
    :id: REQ_SD_311
@@ -2739,18 +2813,30 @@ SD Initial Event Handling
 
 .. requirement:: SD Initial Event Requesting
    :id: REQ_SD_331
-   :satisfies: feat_req_someipsd_1191, feat_req_someipsd_1192, feat_req_someipsd_1193, feat_req_someipsd_946
+   :satisfies: feat_req_someipsd_322, feat_req_someipsd_1187, feat_req_someipsd_1188, feat_req_someipsd_1191, feat_req_someipsd_1192, feat_req_someipsd_1193, feat_req_someipsd_1194, feat_req_someipsd_946
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Server ACKs subscription with initial event flag, verify initial field values are sent via unicast to subscriber.
+   :verification: Unit and integration tests. Header serialization keeps bit 0x20 and clears reserved flag bits. A client sets Initial Data Requested on the first Subscribe and after reboot, and clears it on renewal while the previous TTL is still valid. A repeated Subscribe while an Ack is still outstanding sends StopSubscribe and Subscribe together when the server did not advertise the capability, and only the I flag when it did. A server that sees the capability flag honors the entry bit (send or suppress field notifications after Ack); a legacy peer keeps the implicit new-subscription initial field. Covered by ExplicitInitialDataFlagRoundTrip, ClientRequestsInitialDataOnFirstSubscribeNotRenewal, CapableServerMissedAckDoesNotStopSubscribe, and ExplicitInitialDataControlsFieldDelivery.
 
-   The software shall request initial events after reboot or when
-   no active subscription exists for the eventgroup.
+   The client and server shall implement explicit requesting of Initial
+   Events. Outgoing SD messages advertise the Explicit Initial Data
+   Control Flag. The client sets the Initial Data Requested flag on the
+   first SubscribeEventgroup for an eventgroup, after reboot recovery,
+   and while no subscription is active, and clears it on a further
+   Subscribe whose previous TTL is still valid. When an Ack has not
+   arrived and the server's SD messages do not advertise the capability,
+   the client sends StopSubscribeEventgroup and SubscribeEventgroup in
+   the same datagram so a legacy server treats the retry as a new
+   subscription. The server honors the entry flag only when the sending
+   peer advertises the capability; otherwise it keeps the legacy rule of
+   sending initial field values only for a new subscription. The resolved
+   decision is delivered to the subscription-accepted callback and from
+   there into event publication.
 
-   **Rationale**: Version-aware workflows ensure client-server compatibility.
+   **Rationale**: Explicit initial-data control refreshes field values after loss or reboot without repeating them on ordinary renewal.
 
-   **Code Location**: ``src/sd/sd_client.cpp`` (subscribe_eventgroup entry construction)
+   **Code Location**: ``src/sd/sd_message.cpp`` (flag mask), ``src/sd/sd_client.cpp`` (subscribe_eventgroup), ``src/sd/sd_server.cpp`` (send_subscribe_response), ``src/events/event_publisher.cpp``
 
 
 SD Advanced Features
@@ -2804,18 +2890,23 @@ SD Advanced Features
 
 .. requirement:: SD IPv4 SD Endpoint Processing
    :id: REQ_SD_343
-   :satisfies: feat_req_someipsd_1151, feat_req_someipsd_1152, feat_req_someipsd_1153, feat_req_someipsd_1154, feat_req_someipsd_1155, feat_req_someipsd_1156
+   :satisfies: feat_req_someipsd_1114, feat_req_someipsd_1151, feat_req_someipsd_1152, feat_req_someipsd_1153, feat_req_someipsd_1154, feat_req_someipsd_1155, feat_req_someipsd_1156
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Parse IPv4 SD EndpointOption (type=0x24), verify SD endpoint fields are extracted and not referenced by entries.
+   :verification: Unit test: only the first option on the wire is the SD endpoint; a later 0x24 is ignored, including when an unsupported option ahead of it was skipped; a multicast address is not usable; a second 0x24 is not used; an entry run that includes 0x24 is detected at its wire index. Integration: Subscribe that references 0x24 is NACKed to the SD endpoint, and the application endpoint port is kept. Covered by IPv4SdEndpointPlacementAndEntryReference, IPv4SdEndpointAfterSkippedOptionIsNotFirst, IPv4SdEndpointRejectsMulticastAddress, and SubscribeAckUsesIpv4SdEndpointNotEventEndpoint.
 
-   The software shall process IPv4 SD Endpoint Options when present,
-   using them instead of the source IP/port for SD communication.
+   The software shall process at most the first IPv4 SD Endpoint Option,
+   and only when it is the first option in the options array on the wire.
+   An unsupported option that is skipped does not move a later 0x24 into
+   first place. A multicast address is not a usable SD endpoint. Further
+   IPv4 SD Endpoint Options shall be ignored. Entries shall not reference
+   this option; a SubscribeEventgroup entry that does is rejected. The
+   option is not transmitted by default.
 
-   **Rationale**: TTL configuration controls service and subscription expiry timing.
+   **Rationale**: The SD endpoint is message-scoped, appears at most once at the front of the options array, and is separate from entry endpoint runs.
 
-   **Code Location**: ``src/sd/sd_server.cpp`` (subscription TTL handling)
+   **Code Location**: ``src/sd/sd_message.cpp`` (ipv4_sd_endpoint, entry_references_ipv4_sd_endpoint), ``src/sd/sd_server.cpp``, ``src/sd/sd_client.cpp``
 
 .. requirement:: SD Mandatory Feature Set
    :id: REQ_SD_344
@@ -2896,7 +2987,7 @@ SD Advanced Features
 
 .. requirement:: SD Duplicate Offer Handling
    :id: REQ_SD_349
-   :satisfies: feat_req_someipsd_844, feat_req_someipsd_848, feat_req_someipsd_849, feat_req_someipsd_850, feat_req_someipsd_851
+   :satisfies: feat_req_someipsd_844, feat_req_someipsd_849, feat_req_someipsd_850, feat_req_someipsd_851
    :status: implemented
    :priority: medium
    :category: happy_path
@@ -3002,11 +3093,11 @@ SD Advanced Features
 
 .. requirement:: SD Service Registration
    :id: REQ_SD_356
-   :satisfies: feat_req_someipsd_1194, feat_req_someipsd_1195, feat_req_someipsd_1262, feat_req_someipsd_1297
+   :satisfies: feat_req_someipsd_1195, feat_req_someipsd_1262, feat_req_someipsd_1297
    :status: implemented
    :priority: medium
    :category: happy_path
-   :verification: Unit test: Configure SD timing parameters, verify initial_delay, repetition_base, and cyclic_offer_delay are applied.
+   :verification: Unit test: Configure SD timing parameters, verify initial_delay, repetition_base, and cyclic_offer_delay are applied. Explicit initial events are REQ_SD_331, not this requirement.
 
    The software shall support service registration and deregistration
    with proper cleanup of associated subscriptions and endpoints.
